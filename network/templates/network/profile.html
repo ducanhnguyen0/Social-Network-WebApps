@@ -1,0 +1,118 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    <div class="mx-3">
+        <div class="row">
+            <div class="col-auto">
+                <h1>{{ username }}</h1>
+            </div>
+            {% if user.is_authenticated %}
+                {% if user != profile_owner %}
+                    {% if is_following %}
+                        <form action="{% url 'unfollow' %}" method="POST" class="form-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_owner" value="{{ profile_owner }}"/>
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Unfollow</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'follow' %}" method="POST" class="form-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="profile_owner" value="{{ profile_owner }}"/>
+                            <button type="submit" class="btn btn-outline-success btn-sm">Follow</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="row">
+            <div class="col-auto">
+                <h5>{{ followers.count }} Followers</h5>
+            </div>
+            <div class="col-auto">
+                <h5>{{ following.count }} Following</h5>
+            </div>
+        </div>
+    </div>
+    {% for post in page %}
+        <div class="col d-flex justify-content-center">
+            <div class="card mb-3" style="width: 120rem;">
+                <div class="card-body">
+                    <h5 class="card-title d-flex justify-content-between align-items-center">
+                        <a href="{% url 'profile' user_id=post.author.id %}">@{{ post.author }}</a>
+                        {% if user.is_authenticated %}
+                            {% if user == post.author %}
+                                <div class="dropdown show">
+                                    <a href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots" viewBox="0 0 15 15">
+                                            <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                                        </svg>
+                                    </a>
+
+                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuLink">
+                                        <!-- Button trigger modal -->
+                                        <button type="button" class="dropdown-item" data-toggle="modal" data-target="#modal_edit_post_{{ post.id }}">
+                                            Edit Post
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Modal -->
+                                <div class="modal fade" id="modal_edit_post_{{ post.id }}" tabindex="-1" role="dialog" aria-labelledby="modal_edit_post_{{ post.id }}_label" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                            <h5 class="modal-title" id="modal_edit_post_{{ post.id }}_label">Edit Post</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <textarea id="textarea_{{ post.id }}" class="form-control" name="content">{{ post.content }}</textarea>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="save_changes({{ post.id }})">Save changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </h5>
+                    <p class="card-text" id="content_{{ post.id }}">{{ post.content }}</p>
+                    {% if user.is_authenticated %}
+                        {% if post.id in liked %}
+                            <button class="btn btn-outline btn-sm" onclick="like_post({{ post.id }})">
+                                <i class='fa fa-heart' style='font-size:24px;color:red' id="{{ post.id }}"></i>
+                            </button>
+                        {% else %}
+                            <button class="btn btn-outline btn-sm" onclick="like_post({{ post.id }})">
+                                <i class='fa fa-heart-o' style='font-size:24px;color:red' id="{{ post.id }}"></i>
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                    {% if post.liked_post.count > 0 %}
+                        <p class="card-text"><small class="text-muted" id="num_of_like_{{ post.id }}">{{ post.liked_post.count }} like(s)</small></p>
+                    {% else %}
+                        <p class="card-text"><small class="text-muted" id="num_of_like_{{ post.id }}">Be the first one to like this post</small></p>
+                    {% endif %}
+                    <p class="card-text"><small class="text-muted">{{ post.date }}</small></p>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    <nav aria-label="Page navigation example">
+        <ul class="pagination d-flex justify-content-center">
+            {% if page.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">Previous</a></li>
+            {% endif %}
+            {% if page.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page.paginator.num_pages }}">Last</a></li>
+            {% endif %}
+        </ul>
+        <span class="d-flex justify-content-center">
+            Page {{ page.number }} of {{ page.paginator.num_pages }}.
+        </span>
+    </nav>
+{% endblock %}
